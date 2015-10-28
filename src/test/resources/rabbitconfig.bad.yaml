@@ -1,6 +1,6 @@
 users:
     dan:
-        admin: true
+        BADPROPERTY: true
         password: torrance
     ultron:
         admin: false

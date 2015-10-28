@@ -17,8 +17,12 @@ public class RabbitConfigReader {
         return (RabbitConfig) new Yaml(new Constructor(RabbitConfig.class)).load(yaml);
     }
 
-    public RabbitConfig read(File yamlFile) throws IOException {
-        List<String> lines = Files.readAllLines(Paths.get(yamlFile.getAbsolutePath()));
-        return read(Joiner.on('\n').join(lines));
+    public RabbitConfig read(File yamlFile) {
+        try {
+            List<String> lines = Files.readAllLines(Paths.get(yamlFile.getAbsolutePath()));
+            return read(Joiner.on('\n').join(lines));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

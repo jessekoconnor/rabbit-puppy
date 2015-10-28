@@ -14,11 +14,15 @@ public class RabbitPuppy {
         this.password = password;
     }
 
+    public RabbitPuppy() {
+
+    }
+
     public boolean apply(RabbitConfig rabbitConfig) {
         return false;
     }
 
-    private void waitUntilBrokerAvailable() {
+    private void waitUntilBrokerAvailable() { //A flag
 
     }
 }

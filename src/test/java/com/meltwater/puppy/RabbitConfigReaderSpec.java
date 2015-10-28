@@ -21,12 +21,13 @@ public class RabbitConfigReaderSpec {{
 
     RabbitConfigReader rabbitConfigReader = new RabbitConfigReader();
 
-    File rabbitConfigFile = new File(RabbitConfigReaderSpec.class.getClassLoader().getResource("rabbitconfig.yaml").getFile());
+    File configFile = new File(RabbitConfigReaderSpec.class.getClassLoader().getResource("rabbitconfig.yaml").getFile());
+    File configFileBad = new File(RabbitConfigReaderSpec.class.getClassLoader().getResource("rabbitconfig.bad.yaml").getFile());
 
-    describe("a RabbitConfigReader which reads from file should", it -> {
+    describe("a RabbitConfigReader reading valid config file ", it -> {
+        RabbitConfig config = rabbitConfigReader.read(configFile);
 
         it.should("read vhosts", expect -> {
-            RabbitConfig config = rabbitConfigReader.read(rabbitConfigFile);
             expect
                     .that(config.getVhosts())
                     .hasSize(2)
@@ -35,7 +36,6 @@ public class RabbitConfigReaderSpec {{
 
 
         it.should("read users", expect -> {
-            RabbitConfig config = rabbitConfigReader.read(rabbitConfigFile);
             expect
                     .that(config.getUsers().size())
                     .is(4)
@@ -48,7 +48,6 @@ public class RabbitConfigReaderSpec {{
         });
 
         it.should("read permissions", expect -> {
-            RabbitConfig config = rabbitConfigReader.read(rabbitConfigFile);
             expect
                     .that(config.getPermissions().size())
                     .is(2)
@@ -58,7 +57,6 @@ public class RabbitConfigReaderSpec {{
         });
 
         it.should("read exchanges", expect -> {
-            RabbitConfig config = rabbitConfigReader.read(rabbitConfigFile);
             expect
                     .that(config.getExchanges().size())
                     .is(2)
@@ -69,7 +67,6 @@ public class RabbitConfigReaderSpec {{
         });
 
         it.should("read queues", expect -> {
-            RabbitConfig config = rabbitConfigReader.read(rabbitConfigFile);
             expect
                     .that(config.getQueues().size())
                     .is(2)
@@ -81,13 +78,21 @@ public class RabbitConfigReaderSpec {{
         });
 
         it.should("read bindings", expect -> {
-            RabbitConfig config = rabbitConfigReader.read(rabbitConfigFile);
             expect
                     .that(config.getBindings().size())
                     .is(2)
                     .and(config.getBindings())
                     .has(hasEntry("exchange.in@queue-in@input", new BindingData("queue", "#")))
                     .has(hasEntry("exchange.out@queue-out@output", null));
+        });
+    });
+
+    describe("a RabbitConfigReader reading invalid config file should", it -> {
+
+        it.should("fail nicely", expect -> {
+            expect.exception(RabbitConfigReaderException.class, () ->
+                    rabbitConfigReader.read(configFileBad)
+            );
         });
     });
 

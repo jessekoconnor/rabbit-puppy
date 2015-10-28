@@ -27,6 +27,7 @@ public class Main {
     public static void main(String[] argv) throws IOException {
         Arguments arguments = parseArguments("rabbit-puppy", argv);
         log.info("Reading configuration from " + arguments.configPath);
+        // TODO Fail nicely on YAML parsing error
         RabbitConfig rabbitConfig = rabbitConfigReader.read(new File(arguments.configPath));
         log.info("Parsed input YAML: " + rabbitConfig);
     }
