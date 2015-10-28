@@ -6,16 +6,15 @@ import com.beust.jcommander.ParameterException;
 import com.meltwater.puppy.config.RabbitConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.File;
+import java.io.IOException;
 
 public class Main {
 
     private static final Logger log = LoggerFactory.getLogger(Main.class);
+
+    private static final RabbitConfigReader rabbitConfigReader = new RabbitConfigReader();
 
     private static class Arguments {
         @Parameter(names = { "-h", "--help"}, description = "Print help and exit", help = true)
@@ -25,11 +24,10 @@ public class Main {
         private String configPath;
     }
 
-    public static void main(String[] argv) throws FileNotFoundException {
+    public static void main(String[] argv) throws IOException {
         Arguments arguments = parseArguments("rabbit-puppy", argv);
         log.info("Reading configuration from " + arguments.configPath);
-        RabbitConfig rabbitConfig = (RabbitConfig) new Yaml(new Constructor(RabbitConfig.class))
-                .load(new BufferedReader(new FileReader(arguments.configPath)));
+        RabbitConfig rabbitConfig = rabbitConfigReader.read(new File(arguments.configPath));
         log.info("Parsed input YAML: " + rabbitConfig);
     }
 

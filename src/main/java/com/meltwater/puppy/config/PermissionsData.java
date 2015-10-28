@@ -7,6 +7,12 @@ public class PermissionsData {
 
     public PermissionsData() {}
 
+    public PermissionsData(String configure, String write, String read) {
+        this.configure = configure;
+        this.write = write;
+        this.read = read;
+    }
+
     public String getConfigure() {
         return configure;
     }
@@ -38,5 +44,26 @@ public class PermissionsData {
                 ", write='" + write + '\'' +
                 ", read='" + read + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        PermissionsData that = (PermissionsData) o;
+
+        if (configure != null ? !configure.equals(that.configure) : that.configure != null) return false;
+        if (write != null ? !write.equals(that.write) : that.write != null) return false;
+        return !(read != null ? !read.equals(that.read) : that.read != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = configure != null ? configure.hashCode() : 0;
+        result = 31 * result + (write != null ? write.hashCode() : 0);
+        result = 31 * result + (read != null ? read.hashCode() : 0);
+        return result;
     }
 }

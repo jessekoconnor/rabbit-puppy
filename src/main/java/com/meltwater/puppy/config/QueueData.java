@@ -10,6 +10,12 @@ public class QueueData {
 
     public QueueData() {}
 
+    public QueueData(boolean durable, boolean auto_delete, Map<String, Object> arguments) {
+        this.durable = durable;
+        this.auto_delete = auto_delete;
+        this.arguments = arguments;
+    }
+
     public boolean isDurable() {
         return durable;
     }
@@ -34,6 +40,11 @@ public class QueueData {
         this.arguments = arguments;
     }
 
+    public QueueData addArgument(String key, Object value) {
+        arguments.put(key, value);
+        return this;
+    }
+
     @Override
     public String toString() {
         return "QueueData{" +
@@ -41,5 +52,26 @@ public class QueueData {
                 ", auto_delete=" + auto_delete +
                 ", arguments=" + arguments +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        QueueData queueData = (QueueData) o;
+
+        if (durable != queueData.durable) return false;
+        if (auto_delete != queueData.auto_delete) return false;
+        return !(arguments != null ? !arguments.equals(queueData.arguments) : queueData.arguments != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (durable ? 1 : 0);
+        result = 31 * result + (auto_delete ? 1 : 0);
+        result = 31 * result + (arguments != null ? arguments.hashCode() : 0);
+        return result;
     }
 }
