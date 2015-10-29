@@ -9,8 +9,11 @@ users:
     ali:
 
 vhosts:
-    - input
-    - output
+    input:
+        tracing: true
+    output:
+        tracing: false
+    test:
 
 permissions:
     dan@input:

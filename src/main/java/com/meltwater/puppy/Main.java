@@ -4,6 +4,8 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.meltwater.puppy.config.RabbitConfig;
+import com.meltwater.puppy.config.reader.RabbitConfigReader;
+import com.meltwater.puppy.config.reader.RabbitConfigReaderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,9 +29,13 @@ public class Main {
     public static void main(String[] argv) throws IOException {
         Arguments arguments = parseArguments("rabbit-puppy", argv);
         log.info("Reading configuration from " + arguments.configPath);
-        // TODO Fail nicely on YAML parsing error
-        RabbitConfig rabbitConfig = rabbitConfigReader.read(new File(arguments.configPath));
-        log.info("Parsed input YAML: " + rabbitConfig);
+        try {
+            RabbitConfig rabbitConfig = rabbitConfigReader.read(new File(arguments.configPath));
+            log.info("Parsed input YAML: " + rabbitConfig);
+        } catch (RabbitConfigReaderException e) {
+            log.error("Failed to read configuration, exiting");
+            System.exit(1);
+        }
     }
 
     private static Arguments parseArguments(String programName, String[] argv) {

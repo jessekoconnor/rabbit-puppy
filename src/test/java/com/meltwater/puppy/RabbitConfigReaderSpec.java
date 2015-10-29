@@ -7,6 +7,9 @@ import com.meltwater.puppy.config.PermissionsData;
 import com.meltwater.puppy.config.QueueData;
 import com.meltwater.puppy.config.RabbitConfig;
 import com.meltwater.puppy.config.UserData;
+import com.meltwater.puppy.config.VHostData;
+import com.meltwater.puppy.config.reader.RabbitConfigReader;
+import com.meltwater.puppy.config.reader.RabbitConfigReaderException;
 import org.junit.runner.RunWith;
 
 import java.io.File;
@@ -21,21 +24,29 @@ public class RabbitConfigReaderSpec {{
 
     RabbitConfigReader rabbitConfigReader = new RabbitConfigReader();
 
-    File configFile = new File(RabbitConfigReaderSpec.class.getClassLoader().getResource("rabbitconfig.yaml").getFile());
-    File configFileBad = new File(RabbitConfigReaderSpec.class.getClassLoader().getResource("rabbitconfig.bad.yaml").getFile());
+    File configFile = new File(ClassLoader.getSystemResource("rabbitconfig.yaml").getFile());
+    File configFileBad = new File(ClassLoader.getSystemResource("rabbitconfig.bad.yaml").getFile());
 
     describe("a RabbitConfigReader reading valid config file ", it -> {
-        RabbitConfig config = rabbitConfigReader.read(configFile);
+        final RabbitConfig config;
+        try {
+            config = rabbitConfigReader.read(configFile);
+        } catch (RabbitConfigReaderException e) {
+            throw new RuntimeException(e);
+        }
 
-        it.should("read vhosts", expect -> {
+        it.should("reads vhosts", expect -> {
             expect
-                    .that(config.getVhosts())
-                    .hasSize(2)
-                    .contains("input", "output");
+                    .that(config.getVhosts().size())
+                    .is(3)
+                    .and(config.getVhosts())
+                    .has(hasEntry("input", new VHostData(true)))
+                    .has(hasEntry("output", new VHostData(false)))
+                    .has(hasEntry("test", null));
         });
 
 
-        it.should("read users", expect -> {
+        it.should("reads users", expect -> {
             expect
                     .that(config.getUsers().size())
                     .is(4)
@@ -47,7 +58,7 @@ public class RabbitConfigReaderSpec {{
 
         });
 
-        it.should("read permissions", expect -> {
+        it.should("reads permissions", expect -> {
             expect
                     .that(config.getPermissions().size())
                     .is(2)
@@ -56,7 +67,7 @@ public class RabbitConfigReaderSpec {{
                     .has(hasEntry("dan@output", new PermissionsData(".*", ".*", ".*")));
         });
 
-        it.should("read exchanges", expect -> {
+        it.should("reads exchanges", expect -> {
             expect
                     .that(config.getExchanges().size())
                     .is(2)
@@ -66,7 +77,7 @@ public class RabbitConfigReaderSpec {{
                     .has(hasEntry("exchange.out@output", new ExchangeData("fanout", true, false, false, new HashMap<>())));
         });
 
-        it.should("read queues", expect -> {
+        it.should("reads queues", expect -> {
             expect
                     .that(config.getQueues().size())
                     .is(2)
@@ -77,7 +88,7 @@ public class RabbitConfigReaderSpec {{
                     .has(hasEntry("queue-out@output", new QueueData(true, false, null)));
         });
 
-        it.should("read bindings", expect -> {
+        it.should("reads bindings", expect -> {
             expect
                     .that(config.getBindings().size())
                     .is(2)
@@ -87,11 +98,11 @@ public class RabbitConfigReaderSpec {{
         });
     });
 
-    describe("a RabbitConfigReader reading invalid config file should", it -> {
+    describe("a RabbitConfigReader reading invalid config file", it -> {
 
-        it.should("fail nicely", expect -> {
+        it.should("fails nicely", expect -> {
             expect.exception(RabbitConfigReaderException.class, () ->
-                    rabbitConfigReader.read(configFileBad)
+                            rabbitConfigReader.read(configFileBad)
             );
         });
     });
