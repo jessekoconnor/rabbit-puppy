@@ -2,10 +2,13 @@ package com.meltwater.puppy;
 
 
 import com.insightfullogic.lambdabehave.JunitSuiteRunner;
+import com.meltwater.puppy.config.ExchangeData;
 import com.meltwater.puppy.config.RabbitConfig;
 import com.meltwater.puppy.config.VHostData;
-import com.meltwater.puppy.http.RabbitRestClient;
+import com.meltwater.puppy.rest.RabbitRestClient;
 import org.junit.runner.RunWith;
+
+import java.util.HashMap;
 
 import static com.google.common.collect.ImmutableMap.of;
 import static com.insightfullogic.lambdabehave.Suite.describe;
@@ -34,7 +37,7 @@ public class RabbitPuppySpec {{
             puppy.apply(rabbitConfig);
 
             verify(rabbitRestClient).getVirtualHosts();
-            verify(rabbitRestClient).createVirtualHost(VHOST, VHOST_DATA.isTracing());
+            verify(rabbitRestClient).createVirtualHost(VHOST, VHOST_DATA);
             verifyNoMoreInteractions(rabbitRestClient);
         });
 
@@ -56,6 +59,49 @@ public class RabbitPuppySpec {{
             expect.exception(RabbitPuppyException.class, () -> puppy.apply(rabbitConfig));
 
             verify(rabbitRestClient).getVirtualHosts();
+            verifyNoMoreInteractions(rabbitRestClient);
+        });
+    });
+
+    describe("a rabbit-puppy configured to create an exchange", it -> {
+
+        final String EXCHANGE_NAME = "foo";
+        final String VHOST = "vhost";
+        final String EXCHANGE = EXCHANGE_NAME + "@" + VHOST;
+        final ExchangeData EXCHANGE_DATA = new ExchangeData("topic", true, false, false, new HashMap<>());
+
+        RabbitPuppy puppy = new RabbitPuppy(rabbitRestClient);
+        RabbitConfig rabbitConfig = new RabbitConfig().addExchange(EXCHANGE, EXCHANGE_DATA);
+
+        it.should("create exchange if it doesn't exist", expect -> {
+            when(rabbitRestClient.getExchanges())
+                    .thenReturn(of());
+
+            puppy.apply(rabbitConfig);
+
+            verify(rabbitRestClient).getExchanges();
+            verify(rabbitRestClient).createExchange(EXCHANGE_NAME, VHOST, EXCHANGE_DATA);
+            verifyNoMoreInteractions(rabbitRestClient);
+        });
+
+        it.should("doesn't create exchange if it exists with same config", expect -> {
+            when(rabbitRestClient.getExchanges())
+                    .thenReturn(of(EXCHANGE, EXCHANGE_DATA));
+
+            puppy.apply(rabbitConfig);
+
+            verify(rabbitRestClient).getExchanges();
+            verifyNoMoreInteractions(rabbitRestClient);
+
+        });
+
+        it.should("throw exception if vhosts exists with different config", expect -> {
+            when(rabbitRestClient.getExchanges())
+                    .thenReturn(of(EXCHANGE, new ExchangeData().addArgument("foo", "bar")));
+
+            expect.exception(RabbitPuppyException.class, () -> puppy.apply(rabbitConfig));
+
+            verify(rabbitRestClient).getExchanges();
             verifyNoMoreInteractions(rabbitRestClient);
         });
     });

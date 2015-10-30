@@ -35,12 +35,22 @@ public class RabbitConfig {
         this.users = users;
     }
 
+    public RabbitConfig addUser(String name, UserData userData) {
+        users.put(name, userData);
+        return this;
+    }
+
     public Map<String, PermissionsData> getPermissions() {
         return permissions;
     }
 
     public void setPermissions(Map<String, PermissionsData> permissions) {
         this.permissions = permissions;
+    }
+
+    public RabbitConfig addPermissions(String name, PermissionsData permissionsData) {
+        permissions.put(name, permissionsData);
+        return this;
     }
 
     public Map<String, ExchangeData> getExchanges() {
@@ -51,6 +61,11 @@ public class RabbitConfig {
         this.exchanges = exchanges;
     }
 
+    public RabbitConfig addExchange(String name, ExchangeData exchangeData) {
+        exchanges.put(name, exchangeData);
+        return this;
+    }
+
     public Map<String, QueueData> getQueues() {
         return queues;
     }
@@ -59,12 +74,22 @@ public class RabbitConfig {
         this.queues = queues;
     }
 
+    public RabbitConfig addQueue(String name, QueueData queueData) {
+        queues.put(name, queueData);
+        return this;
+    }
+
     public Map<String, BindingData> getBindings() {
         return bindings;
     }
 
     public void setBindings(Map<String, BindingData> bindings) {
         this.bindings = bindings;
+    }
+
+    public RabbitConfig addBinding(String name, BindingData bindingData) {
+        bindings.put(name, bindingData);
+        return this;
     }
 
     @Override

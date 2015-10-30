@@ -1,9 +1,9 @@
 package com.meltwater.puppy.config;
 
 public class PermissionsData {
-    private String configure;
-    private String write;
-    private String read;
+    private String configure = ".*";
+    private String write = ".*";
+    private String read = ".*";
 
     public PermissionsData() {}
 

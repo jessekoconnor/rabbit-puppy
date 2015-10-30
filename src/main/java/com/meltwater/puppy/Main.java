@@ -5,9 +5,9 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.meltwater.puppy.config.RabbitConfig;
 import com.meltwater.puppy.config.reader.RabbitConfigReader;
-import com.meltwater.puppy.config.reader.RabbitConfigReaderException;
-import com.meltwater.puppy.http.DryRunRabbitRestClient;
-import com.meltwater.puppy.http.RabbitRestClient;
+import com.meltwater.puppy.config.reader.RabbitConfigException;
+import com.meltwater.puppy.rest.DryRunRabbitRestClient;
+import com.meltwater.puppy.rest.RabbitRestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +51,7 @@ public class Main {
             RabbitRestClient rabbitRestClient = createClient(arguments);
             new RabbitPuppy(rabbitRestClient)
                     .apply(rabbitConfig);
-        } catch (RabbitConfigReaderException e) {
+        } catch (RabbitConfigException e) {
             log.error("Failed to read configuration, exiting");
             System.exit(1);
         } catch (RabbitPuppyException e) {

@@ -1,4 +1,4 @@
-package com.meltwater.puppy.http;
+package com.meltwater.puppy.rest;
 
 import com.google.common.net.UrlEscapers;
 import com.mashape.unirest.http.HttpResponse;

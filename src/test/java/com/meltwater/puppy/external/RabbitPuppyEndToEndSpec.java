@@ -3,7 +3,7 @@ package com.meltwater.puppy.external;
 import com.insightfullogic.lambdabehave.JunitSuiteRunner;
 import com.meltwater.puppy.config.reader.RabbitConfigReader;
 import com.meltwater.puppy.RabbitPuppy;
-import com.meltwater.puppy.http.RestRequestBuilder;
+import com.meltwater.puppy.rest.RestRequestBuilder;
 import org.json.JSONObject;
 import org.junit.runner.RunWith;
 
@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 import static com.insightfullogic.lambdabehave.Suite.describe;
-import static com.meltwater.puppy.http.RestUtils.escape;
+import static com.meltwater.puppy.rest.RestUtils.escape;
 
 // TODO Should use Main method to be truly E2E
 
@@ -45,8 +45,9 @@ public class RabbitPuppyEndToEndSpec {
             it.isSetupWith(() -> puppy.apply(new RabbitConfigReader().read(configFile)));
 
             it.isConcludedWith(() -> {
-                requestBuilder.delete("api/vhosts/input").asString();
-                requestBuilder.delete("api/vhosts/output").asString();
+                requestBuilder.delete("api/vhosts/{vhost}").routeParam("vhost", escape("input")).asString();
+                requestBuilder.delete("api/vhosts/{vhost}").routeParam("vhost", escape("output")).asString();
+                requestBuilder.delete("api/vhosts/{vhost}").routeParam("vhost", escape("test")).asString();
             });
 
             it.uses("input")

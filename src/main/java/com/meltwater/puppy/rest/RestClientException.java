@@ -1,4 +1,4 @@
-package com.meltwater.puppy.http;
+package com.meltwater.puppy.rest;
 
 public class RestClientException extends Exception {
     public RestClientException(String s, Exception e) {

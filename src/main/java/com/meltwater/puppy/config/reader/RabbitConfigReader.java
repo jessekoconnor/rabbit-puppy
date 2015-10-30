@@ -18,22 +18,22 @@ public class RabbitConfigReader {
 
     private static final Logger log = LoggerFactory.getLogger(RabbitConfigReader.class);
 
-    public RabbitConfig read(String yaml) throws RabbitConfigReaderException {
+    public RabbitConfig read(String yaml) throws RabbitConfigException {
         try {
             return (RabbitConfig) new Yaml(new Constructor(RabbitConfig.class)).load(yaml);
         } catch (ConstructorException e) {
             log.error("Failed reading configuration: " + e.getMessage());
-            throw new RabbitConfigReaderException("Failed reading configuration", e);
+            throw new RabbitConfigException("Failed reading configuration", e);
         }
     }
 
-    public RabbitConfig read(File yamlFile) throws RabbitConfigReaderException {
+    public RabbitConfig read(File yamlFile) throws RabbitConfigException {
         try {
             List<String> lines = Files.readAllLines(Paths.get(yamlFile.getAbsolutePath()));
             return read(Joiner.on('\n').join(lines));
         } catch (IOException e) {
             log.error("Failed reading from file " + yamlFile.getPath(), e.getMessage());
-            throw new RabbitConfigReaderException("Failed reading from file " + yamlFile.getPath(), e);
+            throw new RabbitConfigException("Failed reading from file " + yamlFile.getPath(), e);
         }
     }
 }

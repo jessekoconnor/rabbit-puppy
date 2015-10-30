@@ -8,7 +8,8 @@ import java.util.List;
 public class RabbitPuppyException extends Exception {
     private final List<Throwable> errors;
 
-    public RabbitPuppyException(List<Throwable> errors) {
+    public RabbitPuppyException(String s, List<Throwable> errors) {
+        super(s);
         this.errors = errors;
     }
 

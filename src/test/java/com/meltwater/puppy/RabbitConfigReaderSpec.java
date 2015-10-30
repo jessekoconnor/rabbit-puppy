@@ -9,7 +9,7 @@ import com.meltwater.puppy.config.RabbitConfig;
 import com.meltwater.puppy.config.UserData;
 import com.meltwater.puppy.config.VHostData;
 import com.meltwater.puppy.config.reader.RabbitConfigReader;
-import com.meltwater.puppy.config.reader.RabbitConfigReaderException;
+import com.meltwater.puppy.config.reader.RabbitConfigException;
 import org.junit.runner.RunWith;
 
 import java.io.File;
@@ -31,7 +31,7 @@ public class RabbitConfigReaderSpec {{
         final RabbitConfig config;
         try {
             config = rabbitConfigReader.read(configFile);
-        } catch (RabbitConfigReaderException e) {
+        } catch (RabbitConfigException e) {
             throw new RuntimeException(e);
         }
 
@@ -49,12 +49,10 @@ public class RabbitConfigReaderSpec {{
         it.should("reads users", expect -> {
             expect
                     .that(config.getUsers().size())
-                    .is(4)
+                    .is(2)
                     .and(config.getUsers())
                     .has(hasEntry("dan", new UserData("torrance", true)))
-                    .has(hasEntry("ultron", new UserData(null, false)))
-                    .has(hasEntry("jack", new UserData("bauer", false)))
-                    .has(hasEntry("ali", null));
+                    .has(hasEntry("jack", new UserData("bauer", false)));
 
         });
 
@@ -101,7 +99,7 @@ public class RabbitConfigReaderSpec {{
     describe("a RabbitConfigReader reading invalid config file", it -> {
 
         it.should("fails nicely", expect -> {
-            expect.exception(RabbitConfigReaderException.class, () ->
+            expect.exception(RabbitConfigException.class, () ->
                             rabbitConfigReader.read(configFileBad)
             );
         });

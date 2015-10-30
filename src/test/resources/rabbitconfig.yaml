@@ -2,11 +2,8 @@ users:
     dan:
         admin: true
         password: torrance
-    ultron:
-        admin: false
     jack:
         password: bauer
-    ali:
 
 vhosts:
     input:

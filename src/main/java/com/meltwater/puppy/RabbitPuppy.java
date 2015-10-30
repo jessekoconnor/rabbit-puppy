@@ -1,21 +1,37 @@
 package com.meltwater.puppy;
 
+import com.meltwater.puppy.config.ExchangeData;
+import com.meltwater.puppy.config.PermissionsData;
+import com.meltwater.puppy.config.QueueData;
 import com.meltwater.puppy.config.RabbitConfig;
+import com.meltwater.puppy.config.UserData;
 import com.meltwater.puppy.config.VHostData;
-import com.meltwater.puppy.http.RabbitRestClient;
-import com.meltwater.puppy.http.RestClientException;
+import com.meltwater.puppy.config.reader.RabbitConfigException;
+import com.meltwater.puppy.rest.RabbitRestClient;
+import com.meltwater.puppy.rest.RestClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 
 public class RabbitPuppy {
 
     private static final Logger log = LoggerFactory.getLogger(RabbitPuppy.class);
+
+    private final Pattern permissionsPattern = Pattern.compile("([^@]+)@([^@]+)");
+    private final Pattern exchangePattern = Pattern.compile("([^@]+)@([^@]+)");
+    private final Pattern queuePattern = Pattern.compile("([^@]+)@([^@]+)");
+    private final Pattern bindingPattern = Pattern.compile("([^@]+)@([^@]+)@([^@]+)");
 
     private final RabbitRestClient client;
 
@@ -27,10 +43,23 @@ public class RabbitPuppy {
         this.client = client;
     }
 
-    public void apply(RabbitConfig rabbitConfig) throws RabbitPuppyException {
-        List<Throwable> errors = createVHosts(rabbitConfig.getVhosts());
+    public void apply(RabbitConfig config) throws RabbitPuppyException {
+        List<Throwable> errors = new ArrayList<>();
+
+        if (config.getVhosts().size() > 0)
+            errors.addAll(createVHosts(config.getVhosts()));
+
+        if (config.getUsers().size() > 0)
+            errors.addAll(createUsers(config.getUsers()));
+
+        if (config.getPermissions().size() > 0)
+            errors.addAll(createPermissions(config.getPermissions()));
+
+        if (config.getExchanges().size() > 0)
+            errors.addAll(createExchanges(config));
+
         if (errors.size() > 0) {
-            throw new RabbitPuppyException(errors);
+            throw new RabbitPuppyException("Encountered errors while applying configuration", errors);
         }
     }
 
@@ -51,15 +80,118 @@ public class RabbitPuppy {
             VHostData data = entry.getValue() == null ? new VHostData() : entry.getValue();
             ensurePresent("vhost", name, data, existing, errors, () -> {
                 log.info("Creating vhost " + entry.getKey());
-                boolean tracing = entry.getValue() != null && entry.getValue().isTracing();
-                client.createVirtualHost(entry.getKey(), tracing);
+                client.createVirtualHost(entry.getKey(), data);
             });
         });
         return errors;
     }
 
+    private List<Throwable> createUsers(Map<String, UserData> users) {
+        final List<Throwable> errors = new ArrayList<>();
+        final Map<String, UserData> existing;
+
+        try {
+            existing = client.getUsers();
+            existing.forEach((user, data) -> {
+                if (users.containsKey(user)) {
+                    data.setPassword(users.get(user).getPassword());
+                }
+            });
+        } catch (RestClientException e) {
+            log.error("Failed to fetch vhosts", e);
+            errors.add(e);
+            return errors;
+        }
+
+        users.entrySet().forEach(entry -> {
+            String name = entry.getKey();
+            UserData data = entry.getValue() == null ? new UserData() : entry.getValue();
+            ensurePresent("user", name, data, existing, errors, () -> {
+                log.info("Creating user " + entry.getKey());
+                client.createUser(entry.getKey(), data);
+            });
+        });
+        return errors;
+    }
+
+    private List<Throwable> createPermissions(Map<String, PermissionsData> permissions) {
+        final List<Throwable> errors = new ArrayList<>();
+        final Map<String, PermissionsData> existing;
+
+        try {
+            existing = client.getPermissions();
+        } catch (RestClientException e) {
+            log.error("Failed to fetch exchanges", e);
+            errors.add(e);
+            return errors;
+        }
+
+        permissions.entrySet().forEach(entry -> {
+            String name = entry.getKey();
+            final Matcher matcher = permissionsPattern.matcher(name);
+            if (matcher.matches()) {
+                PermissionsData data = entry.getValue() == null ? new PermissionsData() : entry.getValue();
+                ensurePresent("permissions", name, data, existing, errors, () -> {
+                    String user = matcher.group(1);
+                    String vhost = matcher.group(2);
+                    log.info(format("Setting permissions for user %s at vhost %s", user, vhost));
+                    client.createPermissions(user, vhost, data);
+                });
+            } else {
+                String error = format("Invalid exchange format '%s', should be exchange@vhost", name);
+                log.error(error);
+                errors.add(new RabbitConfigException(error));
+            }
+        });
+        return errors;
+    }
+
+    private List<Throwable> createExchanges(RabbitConfig config) {
+        final List<Throwable> errors = new ArrayList<>();
+        final Map<String, ExchangeData> existing;
+
+        try {
+            existing = client.getExchanges();
+        } catch (RestClientException e) {
+            log.error("Failed to fetch exchanges", e);
+            errors.add(e);
+            return errors;
+        }
+
+        config.getExchanges().entrySet().forEach(entry -> {
+            String name = entry.getKey();
+            final Matcher matcher = exchangePattern.matcher(name);
+            if (matcher.matches()) {
+                ExchangeData data = entry.getValue() == null ? new ExchangeData() : entry.getValue();
+                ensurePresent("exchange", name, data, existing, errors, () -> {
+                    String exchange = matcher.group(1);
+                    String vhost = matcher.group(2);
+                    log.info(format("Creating exchange %s at vhost %s", exchange, vhost));
+                    final Optional<String> user = findPermissibleUserForCreate(config.getPermissions(), vhost, exchange);
+                    if (user.isPresent()) {
+                        client.createExchange(exchange, vhost, data,
+                                user.get(), config.getUsers().get(user.get()).getPassword());
+                    } else {
+                        client.createExchange(exchange, vhost, data);
+                    }
+                });
+            } else {
+                String error = format("Invalid exchange format '%s', should be exchange@vhost", name);
+                log.error(error);
+                errors.add(new RabbitConfigException(error));
+            }
+        });
+        return errors;
+    }
+
+
     private void waitUntilBrokerAvailable() { // TODO A flag
 
+    }
+
+
+    private interface Create {
+        void create() throws RestClientException;
     }
 
     private <D> void ensurePresent(String type, String name, D data, Map<String, D> existing, List<Throwable> errors, Create create) {
@@ -80,7 +212,33 @@ public class RabbitPuppy {
         }
     }
 
-    private interface Create {
-        void create() throws RestClientException;
+    /**
+     * Attempts to find a user in the given configuration with rights to create the requested resource.
+     *
+     * @param permissions  user permissions
+     * @param vhost        vhost name
+     * @param resourceName resource name
+     * @return Optional of user with creation rights, or Optional.empty() if not found.
+     */
+    // TODO Test
+    private Optional<String> findPermissibleUserForCreate(Map<String, PermissionsData> permissions,
+                                                          String vhost,
+                                                          String resourceName) {
+        return permissions.entrySet().stream()
+                .filter(entry -> {
+                    final Matcher matcher = permissionsPattern.matcher(entry.getKey());
+                    if (matcher.matches() && matcher.group(2).equals(vhost)) {
+                        if (Pattern.compile(entry.getValue().getConfigure()).matcher(resourceName).matches()) {
+                            return true;
+                        }
+                    }
+                    return false;
+                })
+                .map(entry -> {
+                    Matcher matcher = permissionsPattern.matcher(entry.getKey());
+                    matcher.find();
+                    return matcher.group(1);
+                })
+                .findFirst();
     }
 }

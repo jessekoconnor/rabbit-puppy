@@ -1,4 +1,6 @@
-package com.meltwater.puppy.http;
+package com.meltwater.puppy.rest;
+
+import com.meltwater.puppy.config.VHostData;
 
 public class DryRunRabbitRestClient extends RabbitRestClient {
     public DryRunRabbitRestClient(String brokerAddress, String brokerUsername, String brokerPassword) {
@@ -6,6 +8,6 @@ public class DryRunRabbitRestClient extends RabbitRestClient {
     }
 
     @Override
-    public void createVirtualHost(String virtualHost, boolean tracing) throws RestClientException {
+    public void createVirtualHost(String virtualHost, VHostData vHostData) throws RestClientException {
     }
 }
