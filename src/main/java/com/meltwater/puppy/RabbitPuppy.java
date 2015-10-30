@@ -49,7 +49,7 @@ public class RabbitPuppy {
         vhosts.entrySet().forEach(entry -> {
             String name = entry.getKey();
             VHostData data = entry.getValue() == null ? new VHostData() : entry.getValue();
-            ensurePresent(name, data, existing, errors, () -> {
+            ensurePresent("vhost", name, data, existing, errors, () -> {
                 log.info("Creating vhost " + entry.getKey());
                 boolean tracing = entry.getValue() != null && entry.getValue().isTracing();
                 client.createVirtualHost(entry.getKey(), tracing);
@@ -62,10 +62,11 @@ public class RabbitPuppy {
 
     }
 
-    private <D> void ensurePresent(String name, D data, Map<String, D> existing, List<Throwable> errors, Create create) {
+    private <D> void ensurePresent(String type, String name, D data, Map<String, D> existing, List<Throwable> errors, Create create) {
         if (existing.containsKey(name)) {
             if (!existing.get(name).equals(data)) {
-                String error = format("%s exists but with wrong configuration: %s", name, data);
+                String error = format("%s '%s' exists but with wrong configuration: %s, expected: %s",
+                        type, name, existing.get(name), data);
                 log.error(error);
                 errors.add(new InvalidConfigurationException(error));
             }
@@ -73,7 +74,7 @@ public class RabbitPuppy {
             try {
                 create.create();
             } catch (RestClientException e) {
-                log.error(format("Failed to create %s: %s", name, e.getMessage()));
+                log.error(format("Failed to create %s '%s': %s", type, name, e.getMessage()));
                 errors.add(e);
             }
         }

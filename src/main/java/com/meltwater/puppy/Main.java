@@ -24,6 +24,18 @@ public class Main {
 
         @Parameter(names = { "-c", "--config" }, description = "YAML config file path", required = true)
         private String configPath;
+
+        @Parameter(names = { "-b", "--broker" }, description = "HTTP URL to broker", required = true)
+        private String broker;
+
+        @Parameter(names = { "-u", "--user" }, description = "Username", required = true)
+        private String user;
+
+        @Parameter(names = { "-p", "--pass" }, description = "Password", required = true)
+        private String pass;
+
+        @Parameter(names = { "-w", "--wait" }, description = "Wait until broker connection succeeds")
+        private boolean wait;
     }
 
     public static void main(String[] argv) throws IOException {
@@ -31,9 +43,12 @@ public class Main {
         log.info("Reading configuration from " + arguments.configPath);
         try {
             RabbitConfig rabbitConfig = rabbitConfigReader.read(new File(arguments.configPath));
-            log.info("Parsed input YAML: " + rabbitConfig);
+            new RabbitPuppy(arguments.broker, arguments.user, arguments.pass).apply(rabbitConfig);
         } catch (RabbitConfigReaderException e) {
             log.error("Failed to read configuration, exiting");
+            System.exit(1);
+        } catch (RabbitPuppyException e) {
+            log.error(String.format("Encountered %d errors, exiting", e.getErrors().size()));
             System.exit(1);
         }
     }

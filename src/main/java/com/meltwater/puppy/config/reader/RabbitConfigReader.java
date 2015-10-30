@@ -22,7 +22,7 @@ public class RabbitConfigReader {
         try {
             return (RabbitConfig) new Yaml(new Constructor(RabbitConfig.class)).load(yaml);
         } catch (ConstructorException e) {
-            log.error("Failed reading configuration", e.getMessage());
+            log.error("Failed reading configuration: " + e.getMessage());
             throw new RabbitConfigReaderException("Failed reading configuration", e);
         }
     }

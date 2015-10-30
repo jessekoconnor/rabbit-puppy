@@ -14,6 +14,8 @@ import java.util.Properties;
 import static com.insightfullogic.lambdabehave.Suite.describe;
 import static com.meltwater.puppy.http.RestUtils.escape;
 
+// TODO Should use Main method to be truly E2E
+
 @RunWith(JunitSuiteRunner.class)
 public class RabbitPuppyEndToEndSpec {
     {
