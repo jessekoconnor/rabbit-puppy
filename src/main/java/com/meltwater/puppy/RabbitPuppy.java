@@ -2,7 +2,6 @@ package com.meltwater.puppy;
 
 import com.meltwater.puppy.config.ExchangeData;
 import com.meltwater.puppy.config.PermissionsData;
-import com.meltwater.puppy.config.QueueData;
 import com.meltwater.puppy.config.RabbitConfig;
 import com.meltwater.puppy.config.UserData;
 import com.meltwater.puppy.config.VHostData;
@@ -16,9 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,6 +39,11 @@ public class RabbitPuppy {
         this.client = client;
     }
 
+    /**
+     * Apply configuration to RabbitMQ Broker
+     * @param config Configuration to apply
+     * @throws RabbitPuppyException If errors or configuration mismatches are encountered
+     */
     public void apply(RabbitConfig config) throws RabbitPuppyException {
         List<Throwable> errors = new ArrayList<>();
 
@@ -63,6 +64,11 @@ public class RabbitPuppy {
         }
     }
 
+    /**
+     * Create vhosts based on configuration.
+     * @param vhosts Configured vhosts
+     * @return List of errors encountered during creation
+     */
     private List<Throwable> createVHosts(Map<String, VHostData> vhosts) {
         final List<Throwable> errors = new ArrayList<>();
         final Map<String, VHostData> existing;
@@ -86,17 +92,17 @@ public class RabbitPuppy {
         return errors;
     }
 
+    /**
+     * Create users based on configuration.
+     * @param users Configured users
+     * @return List of errors encountered during creation
+     */
     private List<Throwable> createUsers(Map<String, UserData> users) {
         final List<Throwable> errors = new ArrayList<>();
         final Map<String, UserData> existing;
 
         try {
-            existing = client.getUsers();
-            existing.forEach((user, data) -> {
-                if (users.containsKey(user)) {
-                    data.setPassword(users.get(user).getPassword());
-                }
-            });
+            existing = withKnownPasswords(client.getUsers(), users);
         } catch (RestClientException e) {
             log.error("Failed to fetch vhosts", e);
             errors.add(e);
@@ -114,6 +120,11 @@ public class RabbitPuppy {
         return errors;
     }
 
+    /**
+     * Creates user permissions per vhost based on configuration.
+     * @param permissions Configured permissions
+     * @return List of errors encountered during creation
+     */
     private List<Throwable> createPermissions(Map<String, PermissionsData> permissions) {
         final List<Throwable> errors = new ArrayList<>();
         final Map<String, PermissionsData> existing;
@@ -146,6 +157,11 @@ public class RabbitPuppy {
         return errors;
     }
 
+    /**
+     * Creates exchanges based on configuration.
+     * @param config Rabbit configuration
+     * @return List of errors encountered during creation
+     */
     private List<Throwable> createExchanges(RabbitConfig config) {
         final List<Throwable> errors = new ArrayList<>();
         final Map<String, ExchangeData> existing;
@@ -189,11 +205,10 @@ public class RabbitPuppy {
 
     }
 
-
-    private interface Create {
-        void create() throws RestClientException;
-    }
-
+    /**
+     * Ensures that the configured resources are present on the broker.
+     * Throws exception if creation failed, or resource exists with settings that does not match expected configuration.
+     */
     private <D> void ensurePresent(String type, String name, D data, Map<String, D> existing, List<Throwable> errors, Create create) {
         if (existing.containsKey(name)) {
             if (!existing.get(name).equals(data)) {
@@ -210,6 +225,30 @@ public class RabbitPuppy {
                 errors.add(e);
             }
         }
+    }
+
+    /**
+     * Because lambdas.
+     */
+    private interface Create {
+        void create() throws RestClientException;
+    }
+
+    /**
+     * Copies known passwords onto users received from broker, since we get only password hash from it, so that
+     * ensurePresent does not fail due to differences in the password field.
+     * @param existing   Existing users
+     * @param fromConfig Users from input configuration
+     * @return           Existing users with known passwords appended
+     */
+    private Map<String, UserData> withKnownPasswords(Map<String, UserData> existing,
+                                                     Map<String, UserData> fromConfig) {
+        existing.forEach((user, data) -> {
+            if (fromConfig.containsKey(user)) {
+                data.setPassword(fromConfig.get(user).getPassword());
+            }
+        });
+        return existing;
     }
 
     /**
@@ -236,7 +275,7 @@ public class RabbitPuppy {
                 })
                 .map(entry -> {
                     Matcher matcher = permissionsPattern.matcher(entry.getKey());
-                    matcher.find();
+                    matcher.find(); // Causes matcher to actually parse regex groups
                     return matcher.group(1);
                 })
                 .findFirst();
