@@ -6,6 +6,8 @@ import com.beust.jcommander.ParameterException;
 import com.meltwater.puppy.config.RabbitConfig;
 import com.meltwater.puppy.config.reader.RabbitConfigReader;
 import com.meltwater.puppy.config.reader.RabbitConfigReaderException;
+import com.meltwater.puppy.http.DryRunRabbitRestClient;
+import com.meltwater.puppy.http.RabbitRestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +38,9 @@ public class Main {
 
         @Parameter(names = { "-w", "--wait" }, description = "Wait until broker connection succeeds")
         private boolean wait;
+
+        @Parameter(names = { "-d", "--dryrun" }, description = "Perform a dry run")
+        private boolean dryRun;
     }
 
     public static void main(String[] argv) throws IOException {
@@ -43,13 +48,24 @@ public class Main {
         log.info("Reading configuration from " + arguments.configPath);
         try {
             RabbitConfig rabbitConfig = rabbitConfigReader.read(new File(arguments.configPath));
-            new RabbitPuppy(arguments.broker, arguments.user, arguments.pass).apply(rabbitConfig);
+            RabbitRestClient rabbitRestClient = createClient(arguments);
+            new RabbitPuppy(rabbitRestClient)
+                    .apply(rabbitConfig);
         } catch (RabbitConfigReaderException e) {
             log.error("Failed to read configuration, exiting");
             System.exit(1);
         } catch (RabbitPuppyException e) {
             log.error(String.format("Encountered %d errors, exiting", e.getErrors().size()));
             System.exit(1);
+        }
+    }
+
+    private static RabbitRestClient createClient(Arguments arguments) {
+        if (arguments.dryRun) {
+            log.info("Performing a dry run - no resources will be created on the rabbit broker");
+            return new DryRunRabbitRestClient(arguments.broker, arguments.user, arguments.pass);
+        } else {
+            return new RabbitRestClient(arguments.broker, arguments.user, arguments.pass);
         }
     }
 

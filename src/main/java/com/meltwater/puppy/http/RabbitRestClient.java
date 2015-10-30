@@ -14,8 +14,6 @@ import static com.meltwater.puppy.http.RestUtils.expect;
 
 public class RabbitRestClient {
 
-    private static final Logger log = LoggerFactory.getLogger(RabbitRestClient.class);
-
     private static final String PATH_VHOSTS = "api/vhosts";
     private static final String PATH_VHOSTS_CREATE = "api/vhosts/{name}";
 

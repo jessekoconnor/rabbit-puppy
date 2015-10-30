@@ -1,9 +1,8 @@
-package com.meltwater.puppy.external;
+package com.meltwater.puppy.http;
 
 import com.insightfullogic.lambdabehave.JunitSuiteRunner;
 import com.meltwater.puppy.config.VHostData;
-import com.meltwater.puppy.http.RabbitRestClient;
-import com.meltwater.puppy.http.RestRequestBuilder;
+import org.apache.http.HttpStatus;
 import org.junit.runner.RunWith;
 
 import java.io.IOException;
@@ -15,8 +14,9 @@ import static com.meltwater.puppy.http.RestUtils.escape;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 @RunWith(JunitSuiteRunner.class)
-public class RabbitRestClientSpec {
+public class DryRunRabbitRestClientSpec {
     {
+
         final Properties properties = new Properties(){{
             try {
                 load(ClassLoader.getSystemResourceAsStream("test.properties"));
@@ -34,9 +34,9 @@ public class RabbitRestClientSpec {
                 .withAuthentication(brokerUser, brokerPass)
                 .withHeader("content-type", "application/json");
 
-        describe("a RabbitMQ REST client with valid auth credentials", it -> {
+        describe("a Dry-Run RabbitMQ REST client with valid auth credentials", it -> {
 
-            final RabbitRestClient rabbitRestClient = new RabbitRestClient(brokerAddress, brokerUser, brokerPass);
+            final DryRunRabbitRestClient rabbitRestClient = new DryRunRabbitRestClient(brokerAddress, brokerUser, brokerPass);
 
             it.isConcludedWith(() -> {
                 requestBuilder.delete("api/vhosts/{vhost}").routeParam("vhost", escape("test")).asString();
@@ -48,14 +48,13 @@ public class RabbitRestClientSpec {
                     .uses("test", false)
                     .and("test2", true)
                     .and("test/test", false)
-                    .toShow("creates vhost: %s", (expect, vhost, tracing) -> {
+                    .toShow("does not create vhost: %s", (expect, vhost, tracing) -> {
                         rabbitRestClient.createVirtualHost(vhost, tracing);
 
                         expect.that(requestBuilder.get("api/vhosts/{vhost}")
                                 .routeParam("vhost", escape(vhost))
-                                .asJson().getBody().getObject()
-                                .get("tracing"))
-                                .is(tracing);
+                                .asString().getStatus())
+                                .is(HttpStatus.SC_NOT_FOUND);
                     });
 
             it.should("gets all vhosts", expect -> {
@@ -72,5 +71,4 @@ public class RabbitRestClientSpec {
             });
 
         });
-    }
-}
+    }}
